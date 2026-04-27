@@ -1,10 +1,10 @@
-name: Mihoyo Daily Check-in
+name: Mihoyo Daily Check-in (Multi-User)
 
-on:
+于:
   schedule:
     # 每天 UTC 时间 22:00 执行（对应北京时间早上6点）
     - cron: '0 22 * * *'
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:  # 允许手动触发测试
 
 jobs:
   checkin:
@@ -12,10 +12,10 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
         
@@ -26,18 +26,83 @@ jobs:
     - name: Create config directory
       run: mkdir -p config
       
-    - name: Create config file
+    - name: Generate multi-user config files
       env:
-        CONFIG_YAML: ${{ secrets.CONFIG_YAML }}
+        CONFIG_BASE: ${{ secrets.CONFIG_YAML_BASE }}
+        USERS_JSON: ${{ secrets.USERS_CONFIG }}
       run: |
-        echo "$CONFIG_YAML" > config/config.yaml
+        python3 << 'EOF'
+        import json
+        import yaml
+        import os
         
-    - name: Run check-in
-      run: python main.py
-      
-    - name: Upload logs
-      if: always()
-      uses: actions/upload-artifact@v3
+        # 读取基础配置模板
+        config_base = yaml.safe_load(os.environ.get('CONFIG_BASE', ''))
+        if not config_base:
+            print("错误：CONFIG_YAML_BASE 未设置")
+            exit(1)
+        
+        # 读取多用户配置
+        users = json.loads(os.environ.get('USERS_JSON', '[]'))
+        if not users:
+            print("错误：USERS_CONFIG 未设置或格式错误")
+            exit(1)
+        
+        # 为每个用户生成配置文件
+        for idx, user in enumerate(users, 1):
+            # 复制基础配置
+            user_config = config_base.copy()
+            
+            # 设置用户特定的账号信息
+            user_config['account'] = {
+                'cookie': user.get('cookie', ''),
+                'stuid': user.get('stuid', ''),
+                'stoken': user.get('stoken', ''),
+                'mid': user.get('mid', '')
+            }
+            
+            # 如果用户配置中有覆盖项，则合并
+            if 'override' in user:
+                for key, value in user['override'].items():
+                    user_config[key] = value
+            
+            # 生成配置文件名：mhy_user1.yaml, mhy_user2.yaml, ...
+            config_filename = f"config/mhy_user{idx}.yaml"
+            
+            # 写入 YAML 文件
+            with open(config_filename, 'w', encoding='utf-8') as f:
+                yaml.dump(user_config, f, allow_unicode=True, default_flow_style=False)
+            
+            print(f"已生成配置文件: {config_filename}")
+        
+        print(f"\n共生成 {len(users)} 个用户配置文件")
+        EOF
+        
+    - name: Create push config (optional)
+      if: secrets.PUSH_INI != ''
+      env:
+        PUSH_INI: ${{ secrets.PUSH_INI }}
+      run: |
+        echo "$PUSH_INI" > config/push.ini
+        
+    - name: List generated config files
+      run: |
+        echo "生成的配置文件列表："
+        ls -lh config/mhy_*.yaml || echo "未找到配置文件"
+        
+    - name: Run multi-user check-in
+      run: python main_multi.py autorun
+      env:
+        PYTHONUNBUFFERED: 1
+        AutoMihoyoBBS_config_prefix: "mhy_"
+        AutoMihoyoBBS_config_multi: "1"
+        
+    - name: Upload logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
       with:
         name: checkin-logs
-        path: logs/
+        path: |
+          logs/
+          *.log
+        retention-days: 7

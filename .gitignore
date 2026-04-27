@@ -103,6 +103,7 @@ celerybeat.pid
 
 # Environments
 .env
+*.env
 .venv
 env/
 venv/
@@ -152,3 +153,5 @@ yaml/
 
 # Nix 编译输出
 result/
+
+*.bak

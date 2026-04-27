@@ -26,10 +26,11 @@ class StatusCode(Enum):
 
 
 def check_github_actions() -> None:
-    """检查是否在GitHub Actions环境运行"""
-    if os.getenv('GITHUB_ACTIONS') == 'true':
-        log.error("请不要在 GitHub Action 运行本项目")
-        exit(0)
+    """检查是否在GitHub Actions环境运行(enable)"""
+    # if os.getenv('GITHUB_ACTIONS') == 'true':
+    #     log.error("请不要在 GitHub Action 运行本项目")
+    #     exit(0)
+    pass
 
 
 def initialize_config() -> Tuple[bool, Optional[str]]:

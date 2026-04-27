@@ -79,11 +79,15 @@ jobs:
         EOF
         
     - name: Create push config (optional)
-      if: ${{ secrets.PUSH_INI != '' }}
       env:
         PUSH_INI: ${{ secrets.PUSH_INI }}
       run: |
-        echo "$PUSH_INI" > config/push.ini
+        if [ -n "$PUSH_INI" ]; then
+          echo "$PUSH_INI" > config/push.ini
+          echo "推送配置已创建"
+        else
+          echo "未配置推送，跳过"
+        fi
         
     - name: List generated config files
       run: |

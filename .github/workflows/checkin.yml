@@ -1,0 +1,43 @@
+name: Mihoyo Daily Check-in
+
+on:
+  schedule:
+    # 每天 UTC 时间 22:00 执行（对应北京时间早上6点）
+    - cron: '0 22 * * *'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  checkin:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        
+    - name: Create config directory
+      run: mkdir -p config
+      
+    - name: Create config file
+      env:
+        CONFIG_YAML: ${{ secrets.CONFIG_YAML }}
+      run: |
+        echo "$CONFIG_YAML" > config/config.yaml
+        
+    - name: Run check-in
+      run: python main.py
+      
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: checkin-logs
+        path: logs/

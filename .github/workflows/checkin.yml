@@ -1,6 +1,6 @@
 name: Mihoyo Daily Check-in (Multi-User)
 
-于:
+on:
   schedule:
     # 每天 UTC 时间 22:00 执行（对应北京时间早上6点）
     - cron: '0 22 * * *'

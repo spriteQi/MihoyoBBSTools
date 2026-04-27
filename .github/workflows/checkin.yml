@@ -79,7 +79,7 @@ jobs:
         EOF
         
     - name: Create push config (optional)
-      if: secrets.PUSH_INI != ''
+      if: ${{ secrets.PUSH_INI != '' }}
       env:
         PUSH_INI: ${{ secrets.PUSH_INI }}
       run: |

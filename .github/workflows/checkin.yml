@@ -110,3 +110,13 @@ jobs:
           logs/
           *.log
         retention-days: 7
+
+  workflow-keepalive:
+    # 防止仓库 60 天无活动导致 scheduled workflow 被 GitHub 自动停用
+    # 原理：定时运行时通过 GitHub API 重新启用本工作流（不产生空提交）
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: liskin/gh-workflow-keepalive@v1
